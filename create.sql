@@ -23,7 +23,6 @@ create table parts
     part_name  varchar(30),
     part_price double precision
 );
-
 alter table parts
     owner to root;
 create table repairman
@@ -157,3 +156,22 @@ alter table part_consumption
     owner to root;
 create unique index part_consumption_consumption_id_uindex
     on part_consumption (consumption_id);
+create function update_discount_while_insert_vehicle() returns trigger
+    language plpgsql
+as
+$$
+begin
+    if 3 <= (select count(*)
+             from vehicle
+             where customer_id = new.customer_id) then
+        update customer set discount_rate = discount_rate - 2 where customer_id = new.customer_id;
+    end if;
+    return new;
+end;
+$$;
+alter function update_discount_while_insert_vehicle() owner to root;
+create trigger vehicle_trigger
+    after insert
+    on vehicle
+    for each row
+execute procedure update_discount_while_insert_vehicle();
